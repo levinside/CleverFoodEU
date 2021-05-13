@@ -47,6 +47,7 @@ const statuses = [
   { pipeline_id: deals.id, status_id: deals.hold },
 ];
 
+console.log(colors.bgWhite.grey(`\nUpdater started in "${target}" mode\n`));
 const mixpanelToken = mpTokens[`${target}`].token;
 const mixpanelSecret = mpTokens[`${target}`].secret;
 
