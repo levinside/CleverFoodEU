@@ -18,7 +18,6 @@ const {
   target,
   databasePage,
   pageLimit,
-  timeout,
   workDays,
   deals,
   contactsFieldsId,
@@ -47,6 +46,7 @@ const statuses = [
   { pipeline_id: deals.id, status_id: deals.hold },
 ];
 
+console.log(colors.bgWhite.grey(`\nUpdater started in "${target}" mode\n`));
 const mixpanelToken = mpTokens[`${target}`].token;
 const mixpanelSecret = mpTokens[`${target}`].secret;
 
@@ -115,101 +115,120 @@ const addLeadsStats = async (pageNum) => {
 const addCustomersStats = async (statsWithLeads) => {
   console.log(colors.bgMagenta.white('addCustomersStats FUNCTION is run \n'));
   const statsWithCustomers = [...statsWithLeads];
-  statsWithCustomers.forEach(async (item) => {
-    const { customer } = item;
-    const { customer_id: customerId } = customer;
-    const [id] = customerId;
+  const customers_list = {};
 
-    await crm.request
-      .get(`/api/v4/contacts/${id}`, {
-        with: 'contacts',
-      })
-      .then(({ data }) => {
-        const [firstName, lastName] = _.split(data.name, ' ');
-        customer.first_name = firstName;
-        customer.last_name = lastName || 'unknown';
+  await Promise.all(
 
-        const { custom_fields_values: fields } = data;
-        if (!fields) return;
+    statsWithCustomers.map(async (item)=>{
+      const { customer } = item;
+      const { customer_id: customerId } = customer;
+      const [id] = customerId;
 
-        fields.forEach((field) => {
-          const { field_id: fieldId } = field;
-          const [value] = field.values;
-          switch (fieldId) {
-            case contactsFieldsId.email:
-              customer.email = value.value;
-              break;
-            case contactsFieldsId.phone:
-              customer.phone = value.value;
-              break;
-            case contactsFieldsId.address:
-              customer.address = value.value;
-              break;
-            default:
-              break;
-          }
-        });
-      })
-      .catch((error) => console.log(colors.bgMagenta.white('ERROR: ', error)));
+      if (customers_list[id] === undefined) {
+
+        await crm.request
+          .get(`/api/v4/contacts/${id}`, {
+            with: 'contacts',
+          })
+          .then(({ data })=>{
+            const [firstName, lastName] = _.split(data.name, ' ');
+            customer.first_name = firstName;
+            customer.last_name = lastName || 'unknown';
+
+            const { custom_fields_values: fields } = data;
+            if (!fields) return;
+
+            fields.forEach((field) => {
+              const { field_id: fieldId } = field;
+              const [value] = field.values;
+              switch (fieldId) {
+                case contactsFieldsId.email:
+                  customer.email = value.value;
+                  break;
+                case contactsFieldsId.phone:
+                  customer.phone = value.value;
+                  break;
+                case contactsFieldsId.address:
+                  customer.address = value.value;
+                  break;
+                default:
+                  break;
+              }
+            });
+          })
+          .catch((error) => {
+            console.log(colors.bgMagenta.white('ERROR: ', error))
+          });
+
+        customers_list[id] = customer;
+      }
+      else {
+        customer = customers_list[id];
+      }
+    })// map
+  )
+  .then(()=>{
+    // nothing
   });
+
   return statsWithCustomers;
 };
 
 const addEventsStats = async (statsWithCustomers) => {
   console.log(colors.bgMagenta.white('addEventsStats FUNCTION is run \n'));
   const statsWithEvents = [...statsWithCustomers];
-  // const statsWithEvents = [...statsWithCustomers].slice(-30); // TEST Directive
 
-  const returnResultAfterPause = (response) => new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(_.filter(response, 'lead.events_beginning'));
-    }, timeout);
+  await Promise.all(
+    statsWithEvents.map(async (statItem) => {
+      const { lead } = statItem;
+      const { lead_id: id } = lead;
+      const eventsBeginning = [];
+      const eventsEnding = [];
+
+      await crm.request
+        .get('/api/v4/events', {
+          filter: {
+            entity: 'lead',
+            entity_id: id,
+            type: 'lead_status_changed',
+            value_after: stageChangeQuery,
+          },
+        })
+        .then(async ({ data }) => {
+          if (!data || !data._embedded) return;
+          const { _embedded } = data;
+          const { events } = _embedded;
+          events.forEach((event) => eventsBeginning.push(moment(event.created_at * 1000).tz('Europe/Prague')));
+          lead.events_beginning = [...eventsBeginning];
+
+          await crm.request
+            .get('/api/v4/events', {
+              filter: {
+                entity: 'lead',
+                entity_id: id,
+                type: 'lead_status_changed',
+                value_before: stageChangeQuery,
+              },
+            })
+            .then(({ data: $data }) => {
+              if ($data) {
+                const { _embedded: $embedded } = $data;
+                const { events: $events } = $embedded;
+                $events.forEach((event) => eventsEnding.push(moment(event.created_at * 1000).tz('Europe/Prague')));
+              }
+              lead.events_ending = [...eventsEnding];
+            })
+            .catch((error) => console.log(error));
+        })
+        .catch((error) => console.log(error));
+
+    })// map
+  )
+  .then(()=>{
+    // console.log('something');
   });
 
-  statsWithEvents.forEach(async (statItem) => {
-    const { lead } = statItem;
-    const { lead_id: id } = lead;
-    const eventsBeginning = [];
-    const eventsEnding = [];
-
-    await crm.request
-      .get('/api/v4/events', {
-        filter: {
-          entity: 'lead',
-          entity_id: id,
-          type: 'lead_status_changed',
-          value_after: stageChangeQuery,
-        },
-      })
-      .then(async ({ data }) => {
-        if (!data || !data._embedded) return;
-        const { _embedded } = data;
-        const { events } = _embedded;
-        events.forEach((event) => eventsBeginning.push(moment(event.created_at * 1000).tz('Europe/Prague')));
-        lead.events_beginning = [...eventsBeginning];
-
-        await crm.request
-          .get('/api/v4/events', {
-            filter: {
-              entity: 'lead',
-              entity_id: id,
-              type: 'lead_status_changed',
-              value_before: stageChangeQuery,
-            },
-          })
-          .then(({ data: $data }) => {
-            if ($data) {
-              const { _embedded: $embedded } = $data;
-              const { events: $events } = $embedded;
-              $events.forEach((event) => eventsEnding.push(moment(event.created_at * 1000).tz('Europe/Prague')));
-            }
-            lead.events_ending = [...eventsEnding];
-          })
-          .catch((error) => console.log(error));
-      })
-      .catch((error) => console.log(error));
-  });
-  return returnResultAfterPause(statsWithEvents);
+  return _.filter(statsWithEvents, 'lead.events_beginning')
 };
 
 const buildProdPeriods = (statsWithEvents) => {
@@ -218,16 +237,16 @@ const buildProdPeriods = (statsWithEvents) => {
 
   statsWithBuildedProdPeriods.forEach((item) => {
     const { lead } = item;
-    const { events_beginning: begin, events_ending: end } = lead;
+    const { events_beginning: events_beginning, events_ending: events_ending } = lead;
     const prodPeriods = [];
-    if (_.isEmpty(begin)) return;
+    if (_.isEmpty(events_beginning)) return;
 
-    begin.sort((a, b) => a - b);
+    const begin = _.sortBy(events_beginning, (v) => v);
 
-    if (_.isEmpty(end)) {
+    if (_.isEmpty(events_ending)) {
       prodPeriods.push([_.head(begin)]);
     } else {
-      end.sort((a, b) => a - b);
+      const end = _.sortBy(events_ending, (v) => v);
       const timestampEnd = _.map(begin, (date) => Dates.dateToTimestamp(date));
 
       begin.forEach((beginDate) => {
@@ -250,6 +269,11 @@ const buildWorkDates = (chunked, todayEndingTimestamp) => {
     [, end] = chunked;
   } else {
     end = todayEndingTimestamp;
+  }
+
+  if (Dates.dateToString(begin) === Dates.dateToString(end)
+    && Dates.dateToTime(begin) > startingTimecut) {
+    return [];
   }
 
   const iter = (newBegin) => {
@@ -356,7 +380,7 @@ const importUsers = (collection) => {
       _last_date: customer.last_date,
     });
   });
-  console.log(colors.bgMagenta.white('Stats of Users for Import: ', unifiedColl.length, '\n'));
+  console.log(colors.bgBrightCyan.white('Stats of Users for Import: ', unifiedColl.length, '\n'));
 };
 
 const splitLeadsToEvents = (collection, dateForUpdate) => {
@@ -390,18 +414,26 @@ const splitLeadsToEvents = (collection, dateForUpdate) => {
 
 const importEvents = (collection) => {
   const splitedEvents = splitLeadsToEvents(collection, moment().subtract(1, 'days').format('YYYY-MM-DD'));
-  console.log(colors.bgMagenta.white('Stats of Splited Events for Import: ', splitedEvents.length, '\n'));
+  console.log(colors.bgBrightCyan.white('Stats of Splited Events for Import: ', splitedEvents.length, '\n'));
   mixpanelImporter.import_batch(splitedEvents);
 };
 
+const writeDump = (fileNum, fileName, data) => {
+  fs.writeFile(`./temp/dump/${fileNum}_${fileName}.json`, JSON.stringify(data), (error) => {
+    if (error) throw new Error(error);
+    console.log(colors.bgGreen.white(`${fileName} successfully wrote.\n`));
+  });
+}
+
 export default async () => {
+  console.time("Update completed in ");
 
   await crm.connection.refreshToken();
 
   const statsWithLeads = await addLeadsStats(databasePage);
+  console.log(colors.bgMagenta.white('Stats With Leads | length: ', statsWithLeads.length, '\n'));
   if (statsWithLeads.length === 0) return;
 
-  console.log(colors.bgMagenta.white('Stats With Leads | length: ', statsWithLeads.length, '\n'));
 
   const statsWithCustomers = await addCustomersStats(statsWithLeads);
   console.log(colors.bgMagenta.white('Stats With Customers | length: ', statsWithCustomers.length, '\n'));
@@ -414,15 +446,11 @@ export default async () => {
 
   const statsWithWorkDates = addWorkDatesStats(statsWithBuildedProdPeriods);
   console.log(colors.bgMagenta.white('Stats With WorkDates | length: ', statsWithWorkDates.length, '\n'));
+  writeDump(5, 'statsWithWorkDates', statsWithWorkDates);
 
-  fs.writeFile('./temp/dump/statsWithWorkDates.json', JSON.stringify(statsWithWorkDates), (error) => {
-    if (error) throw new Error(error);
-    console.log(colors.bgMagenta.white('statsWithWorkDates is successfully writing.', '\n'));
-  });
 
   importUsers(statsWithWorkDates);
   importEvents(statsWithWorkDates);
 
-  // LOG full data set
-  // console.log('Stats With WorkDates | result: ', statsWithWorkDates, '\n');
+  console.timeEnd("Update completed in ");
 };
