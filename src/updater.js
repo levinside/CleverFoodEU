@@ -18,7 +18,6 @@ const {
   target,
   databasePage,
   pageLimit,
-  timeout,
   workDays,
   deals,
   contactsFieldsId,
@@ -161,56 +160,57 @@ const addEventsStats = async (statsWithCustomers) => {
   const statsWithEvents = [...statsWithCustomers];
   // const statsWithEvents = [...statsWithCustomers].slice(-30); // TEST Directive
 
-  const returnResultAfterPause = (response) => new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(_.filter(response, 'lead.events_beginning'));
-    }, timeout);
+  await Promise.all(
+    statsWithEvents.map(async (statItem) => {
+      const { lead } = statItem;
+      const { lead_id: id } = lead;
+      const eventsBeginning = [];
+      const eventsEnding = [];
+
+      await crm.request
+        .get('/api/v4/events', {
+          filter: {
+            entity: 'lead',
+            entity_id: id,
+            type: 'lead_status_changed',
+            value_after: stageChangeQuery,
+          },
+        })
+        .then(async ({ data }) => {
+          if (!data || !data._embedded) return;
+          const { _embedded } = data;
+          const { events } = _embedded;
+          events.forEach((event) => eventsBeginning.push(moment(event.created_at * 1000).tz('Europe/Prague')));
+          lead.events_beginning = [...eventsBeginning];
+
+          await crm.request
+            .get('/api/v4/events', {
+              filter: {
+                entity: 'lead',
+                entity_id: id,
+                type: 'lead_status_changed',
+                value_before: stageChangeQuery,
+              },
+            })
+            .then(({ data: $data }) => {
+              if ($data) {
+                const { _embedded: $embedded } = $data;
+                const { events: $events } = $embedded;
+                $events.forEach((event) => eventsEnding.push(moment(event.created_at * 1000).tz('Europe/Prague')));
+              }
+              lead.events_ending = [...eventsEnding];
+            })
+            .catch((error) => console.log(error));
+        })
+        .catch((error) => console.log(error));
+
+    })// map
+  )
+  .then(()=>{
+    // console.log('something');
   });
 
-  statsWithEvents.forEach(async (statItem) => {
-    const { lead } = statItem;
-    const { lead_id: id } = lead;
-    const eventsBeginning = [];
-    const eventsEnding = [];
-
-    await crm.request
-      .get('/api/v4/events', {
-        filter: {
-          entity: 'lead',
-          entity_id: id,
-          type: 'lead_status_changed',
-          value_after: stageChangeQuery,
-        },
-      })
-      .then(async ({ data }) => {
-        if (!data || !data._embedded) return;
-        const { _embedded } = data;
-        const { events } = _embedded;
-        events.forEach((event) => eventsBeginning.push(moment(event.created_at * 1000).tz('Europe/Prague')));
-        lead.events_beginning = [...eventsBeginning];
-
-        await crm.request
-          .get('/api/v4/events', {
-            filter: {
-              entity: 'lead',
-              entity_id: id,
-              type: 'lead_status_changed',
-              value_before: stageChangeQuery,
-            },
-          })
-          .then(({ data: $data }) => {
-            if ($data) {
-              const { _embedded: $embedded } = $data;
-              const { events: $events } = $embedded;
-              $events.forEach((event) => eventsEnding.push(moment(event.created_at * 1000).tz('Europe/Prague')));
-            }
-            lead.events_ending = [...eventsEnding];
-          })
-          .catch((error) => console.log(error));
-      })
-      .catch((error) => console.log(error));
-  });
-  return returnResultAfterPause(statsWithEvents);
+  return _.filter(statsWithEvents, 'lead.events_beginning')
 };
 
 const buildProdPeriods = (statsWithEvents) => {
