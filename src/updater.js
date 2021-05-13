@@ -158,7 +158,6 @@ const addCustomersStats = async (statsWithLeads) => {
 const addEventsStats = async (statsWithCustomers) => {
   console.log(colors.bgMagenta.white('addEventsStats FUNCTION is run \n'));
   const statsWithEvents = [...statsWithCustomers];
-  // const statsWithEvents = [...statsWithCustomers].slice(-30); // TEST Directive
 
   await Promise.all(
     statsWithEvents.map(async (statItem) => {
