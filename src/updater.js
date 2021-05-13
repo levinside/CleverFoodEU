@@ -218,16 +218,16 @@ const buildProdPeriods = (statsWithEvents) => {
 
   statsWithBuildedProdPeriods.forEach((item) => {
     const { lead } = item;
-    const { events_beginning: begin, events_ending: end } = lead;
+    const { events_beginning: events_beginning, events_ending: events_ending } = lead;
     const prodPeriods = [];
-    if (_.isEmpty(begin)) return;
+    if (_.isEmpty(events_beginning)) return;
 
-    begin.sort((a, b) => a - b);
+    const begin = _.sortBy(events_beginning, (v) => v);
 
-    if (_.isEmpty(end)) {
+    if (_.isEmpty(events_ending)) {
       prodPeriods.push([_.head(begin)]);
     } else {
-      end.sort((a, b) => a - b);
+      const end = _.sortBy(events_ending, (v) => v);
       const timestampEnd = _.map(begin, (date) => Dates.dateToTimestamp(date));
 
       begin.forEach((beginDate) => {
