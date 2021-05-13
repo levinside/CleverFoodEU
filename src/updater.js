@@ -361,7 +361,7 @@ const importUsers = (collection) => {
       _last_date: customer.last_date,
     });
   });
-  console.log(colors.bgMagenta.white('Stats of Users for Import: ', unifiedColl.length, '\n'));
+  console.log(colors.bgBrightCyan.white('Stats of Users for Import: ', unifiedColl.length, '\n'));
 };
 
 const splitLeadsToEvents = (collection, dateForUpdate) => {
@@ -395,7 +395,7 @@ const splitLeadsToEvents = (collection, dateForUpdate) => {
 
 const importEvents = (collection) => {
   const splitedEvents = splitLeadsToEvents(collection, moment().subtract(1, 'days').format('YYYY-MM-DD'));
-  console.log(colors.bgMagenta.white('Stats of Splited Events for Import: ', splitedEvents.length, '\n'));
+  console.log(colors.bgBrightCyan.white('Stats of Splited Events for Import: ', splitedEvents.length, '\n'));
   mixpanelImporter.import_batch(splitedEvents);
 };
 
@@ -404,9 +404,9 @@ export default async () => {
   await crm.connection.refreshToken();
 
   const statsWithLeads = await addLeadsStats(databasePage);
+  console.log(colors.bgMagenta.white('Stats With Leads | length: ', statsWithLeads.length, '\n'));
   if (statsWithLeads.length === 0) return;
 
-  console.log(colors.bgMagenta.white('Stats With Leads | length: ', statsWithLeads.length, '\n'));
 
   const statsWithCustomers = await addCustomersStats(statsWithLeads);
   console.log(colors.bgMagenta.white('Stats With Customers | length: ', statsWithCustomers.length, '\n'));
