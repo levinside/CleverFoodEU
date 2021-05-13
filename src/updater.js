@@ -400,6 +400,7 @@ const importEvents = (collection) => {
 };
 
 export default async () => {
+  console.time("Update completed in ");
 
   await crm.connection.refreshToken();
 
@@ -428,6 +429,5 @@ export default async () => {
   importUsers(statsWithWorkDates);
   importEvents(statsWithWorkDates);
 
-  // LOG full data set
-  // console.log('Stats With WorkDates | result: ', statsWithWorkDates, '\n');
+  console.timeEnd("Update completed in ");
 };
