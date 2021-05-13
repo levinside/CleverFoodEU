@@ -115,43 +115,62 @@ const addLeadsStats = async (pageNum) => {
 const addCustomersStats = async (statsWithLeads) => {
   console.log(colors.bgMagenta.white('addCustomersStats FUNCTION is run \n'));
   const statsWithCustomers = [...statsWithLeads];
-  statsWithCustomers.forEach(async (item) => {
-    const { customer } = item;
-    const { customer_id: customerId } = customer;
-    const [id] = customerId;
+  const customers_list = {};
 
-    await crm.request
-      .get(`/api/v4/contacts/${id}`, {
-        with: 'contacts',
-      })
-      .then(({ data }) => {
-        const [firstName, lastName] = _.split(data.name, ' ');
-        customer.first_name = firstName;
-        customer.last_name = lastName || 'unknown';
+  await Promise.all(
 
-        const { custom_fields_values: fields } = data;
-        if (!fields) return;
+    statsWithCustomers.map(async (item)=>{
+      const { customer } = item;
+      const { customer_id: customerId } = customer;
+      const [id] = customerId;
 
-        fields.forEach((field) => {
-          const { field_id: fieldId } = field;
-          const [value] = field.values;
-          switch (fieldId) {
-            case contactsFieldsId.email:
-              customer.email = value.value;
-              break;
-            case contactsFieldsId.phone:
-              customer.phone = value.value;
-              break;
-            case contactsFieldsId.address:
-              customer.address = value.value;
-              break;
-            default:
-              break;
-          }
-        });
-      })
-      .catch((error) => console.log(colors.bgMagenta.white('ERROR: ', error)));
+      if (customers_list[id] === undefined) {
+
+        await crm.request
+          .get(`/api/v4/contacts/${id}`, {
+            with: 'contacts',
+          })
+          .then(({ data })=>{
+            const [firstName, lastName] = _.split(data.name, ' ');
+            customer.first_name = firstName;
+            customer.last_name = lastName || 'unknown';
+
+            const { custom_fields_values: fields } = data;
+            if (!fields) return;
+
+            fields.forEach((field) => {
+              const { field_id: fieldId } = field;
+              const [value] = field.values;
+              switch (fieldId) {
+                case contactsFieldsId.email:
+                  customer.email = value.value;
+                  break;
+                case contactsFieldsId.phone:
+                  customer.phone = value.value;
+                  break;
+                case contactsFieldsId.address:
+                  customer.address = value.value;
+                  break;
+                default:
+                  break;
+              }
+            });
+          })
+          .catch((error) => {
+            console.log(colors.bgMagenta.white('ERROR: ', error))
+          });
+
+        customers_list[id] = customer;
+      }
+      else {
+        customer = customers_list[id];
+      }
+    })// map
+  )
+  .then(()=>{
+    // nothing
   });
+
   return statsWithCustomers;
 };
 
