@@ -399,6 +399,13 @@ const importEvents = (collection) => {
   mixpanelImporter.import_batch(splitedEvents);
 };
 
+const writeDump = (fileNum, fileName, data) => {
+  fs.writeFile(`./temp/dump/${fileNum}_${fileName}.json`, JSON.stringify(data), (error) => {
+    if (error) throw new Error(error);
+    console.log(colors.bgGreen.white(`${fileName} successfully wrote.\n`));
+  });
+}
+
 export default async () => {
   console.time("Update completed in ");
 
@@ -420,11 +427,8 @@ export default async () => {
 
   const statsWithWorkDates = addWorkDatesStats(statsWithBuildedProdPeriods);
   console.log(colors.bgMagenta.white('Stats With WorkDates | length: ', statsWithWorkDates.length, '\n'));
+  writeDump(5, 'statsWithWorkDates', statsWithWorkDates);
 
-  fs.writeFile('./temp/dump/statsWithWorkDates.json', JSON.stringify(statsWithWorkDates), (error) => {
-    if (error) throw new Error(error);
-    console.log(colors.bgMagenta.white('statsWithWorkDates is successfully writing.', '\n'));
-  });
 
   importUsers(statsWithWorkDates);
   importEvents(statsWithWorkDates);
