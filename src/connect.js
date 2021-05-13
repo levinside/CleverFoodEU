@@ -25,15 +25,6 @@ export default () => {
     },
   });
 
-  try {
-    const token = require('../tokens/token.json');
-    crm.connection.setToken(token);
-    // crm.connection.refreshToken();
-  } catch (e) {
-    console.log('Please open this URL in browser and confirm the access.');
-    console.log(crm.connection.getAuthUrl());
-  }
-
   crm.on('connection:beforeRefreshToken', () => console.log('beforeRefreshToken'));
 
   crm.on('connection:error', () => console.log('Ошибка соединения'));
@@ -41,6 +32,14 @@ export default () => {
     console.log('connection:newToken')
     fs.writeFileSync('./tokens/token.json', JSON.stringify(newToken.data));
   });
+
+  try {
+    const token = require('../tokens/token.json');
+    crm.connection.setToken(token);
+  } catch (e) {
+    console.log('Please open this URL in browser and confirm the access.');
+    console.log(crm.connection.getAuthUrl());
+  }
 
   return crm;
 };
