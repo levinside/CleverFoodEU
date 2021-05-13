@@ -252,6 +252,11 @@ const buildWorkDates = (chunked, todayEndingTimestamp) => {
     end = todayEndingTimestamp;
   }
 
+  if (Dates.dateToString(begin) === Dates.dateToString(end)
+    && Dates.dateToTime(begin) > startingTimecut) {
+    return [];
+  }
+
   const iter = (newBegin) => {
     const workDates = [];
     if (Dates.dateToString(newBegin) >= Dates.dateToString(end)) {
