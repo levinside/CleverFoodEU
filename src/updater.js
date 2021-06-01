@@ -23,7 +23,6 @@ const {
   contactsFieldsId,
   funnels,
   finished,
-  lost,
   startingTimecut,
   stoppingTimecut,
   eventsTimeGap,
@@ -38,7 +37,6 @@ const stageChangeQuery = {
 
 const statuses = [
   { pipeline_id: deals.id, status_id: finished },
-  { pipeline_id: deals.id, status_id: lost },
   { pipeline_id: deals.id, status_id: deals.full },
   { pipeline_id: deals.id, status_id: deals.demo },
   { pipeline_id: deals.id, status_id: deals.full_prolong },

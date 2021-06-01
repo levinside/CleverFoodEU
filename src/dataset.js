@@ -43,7 +43,6 @@ const zdrave = {
 };
 
 const finished = 142;
-const lost = 143;
 
 const contactsFieldsId = {
   email: 265795,
@@ -123,7 +122,6 @@ export default {
   leadsFieldsId,
   funnels,
   finished,
-  lost,
   cornerCases,
   startingTimecut,
   stoppingTimecut,
