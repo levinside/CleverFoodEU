@@ -12,6 +12,9 @@ import mpTokens from '../tokens/mixpanel-tokens.js';
 import connect from './connect.js';
 import pkg from './dataset.js';
 
+// import { createRequire } from "module";
+// const require = createRequire(import.meta.url);
+
 moment.tz.setDefault('Europe/Prague');
 
 const {
@@ -431,20 +434,32 @@ export default async () => {
   const statsWithLeads = await addLeadsStats(databasePage);
   console.log(colors.bgMagenta.white('Stats With Leads | length: ', statsWithLeads.length, '\n'));
   if (statsWithLeads.length === 0) return;
+  writeDump(1, 'statsWithLeads', statsWithLeads);
+  // const statsWithLeads = require('../temp/dump/1_statsWithLeads.json');
 
 
   const statsWithCustomers = await addCustomersStats(statsWithLeads);
   console.log(colors.bgMagenta.white('Stats With Customers | length: ', statsWithCustomers.length, '\n'));
+  writeDump(2, 'statsWithCustomers', statsWithCustomers);
+  // const statsWithCustomers = require('../temp/dump/2_statsWithCustomers.json');
+
 
   const statsWithEvents = await addEventsStats(statsWithCustomers);
   console.log(colors.bgMagenta.white('Stats With Events | length: ', statsWithEvents.length, '\n'));
+  writeDump(3, 'statsWithEvents', statsWithEvents);
+  // const statsWithEvents = require('../temp/dump/3_statsWithEvents.json');
+
 
   const statsWithBuildedProdPeriods = buildProdPeriods(statsWithEvents);
   console.log(colors.bgMagenta.white('Stats With Builded ProdPeriods | length: ', statsWithBuildedProdPeriods.length, '\n'));
+  writeDump(4, 'statsWithBuildedProdPeriods', statsWithBuildedProdPeriods);
+  // const statsWithBuildedProdPeriods = require('../temp/dump/4_statsWithBuildedProdPeriods.json');
+
 
   const statsWithWorkDates = addWorkDatesStats(statsWithBuildedProdPeriods);
   console.log(colors.bgMagenta.white('Stats With WorkDates | length: ', statsWithWorkDates.length, '\n'));
   writeDump(5, 'statsWithWorkDates', statsWithWorkDates);
+  // const statsWithWorkDates = require('../temp/dump/5_statsWithWorkDates.json');
 
 
   importUsers(statsWithWorkDates);
