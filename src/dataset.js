@@ -5,7 +5,7 @@ const timestamp = (date) => moment(moment(date).format('X') * 1000).tz('Europe/P
 
 // Coolection of amoCRM business process values, properties and constants
 
-const target = 'test'; // choose Mixpanel DataBase: 'test' or 'production'
+const target = 'production'; // choose Mixpanel DataBase: 'test' or 'production'
 const databasePage = 1;
 const pageLimit = 250;
 const startingTimecut = '13:30';
