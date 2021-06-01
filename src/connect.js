@@ -36,6 +36,7 @@ export default () => {
   try {
     const token = require('../tokens/token.json');
     crm.connection.setToken(token);
+    // crm.connection.refreshToken();
   } catch (e) {
     console.log('Please open this URL in browser and confirm the access.');
     console.log(crm.connection.getAuthUrl());
