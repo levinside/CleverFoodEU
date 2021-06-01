@@ -10,6 +10,9 @@ import connect from './connect.js';
 import Dates from './Dates.js';
 import pkg from './dataset.js';
 
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+
 moment.tz.setDefault('Europe/Prague');
 
 const {
@@ -129,7 +132,7 @@ const addCustomersStats = async (pageNum) => {
     : [];
 };
 
-const addLeadsStats = async (statsWithCustomers) => {
+const addLeadsStats = async (statsWithCustomers, timeout=30000) => {
   console.log('addLeadsStats FUNCTION is run \n');
   const statsWithLeads = [...statsWithCustomers];
 
@@ -189,7 +192,7 @@ const addLeadsStats = async (statsWithCustomers) => {
   return returnResultAfterPause(statsWithLeads);
 };
 
-const addEventsStats = async (statsWithLeads) => {
+const addEventsStats = async (statsWithLeads, timeout=30000) => {
   console.log('addEventsStats FUNCTION is run \n');
   const statsWithEvents = [...statsWithLeads];
 
@@ -322,11 +325,6 @@ const addWorkDatesStats = (statsWithEvents) => {
 };
 
 const addCohortsStats = (statsWithWorkDates) => {
-  fs.writeFile(`./temp/dump/statsWithWorkDates_${Dates.now}.json`, JSON.stringify(statsWithWorkDates), (error) => {
-    if (error) throw new Error(error);
-    console.log('statsWithWorkDates is successfully writing.');
-  });
-
   console.log('addCohortsStats FUNCTION is run \n');
   const statsWithCohorts = [...statsWithWorkDates];
   statsWithCohorts.forEach((item) => {
@@ -371,11 +369,6 @@ const addCohortsStats = (statsWithWorkDates) => {
         cohort_work_dates: cohortDates,
       });
     });
-  });
-
-  fs.writeFile(`./temp/dump/statsWithCohorts_${Dates.now}.json`, JSON.stringify(statsWithCohorts), (error) => {
-    if (error) throw new Error(error);
-    console.log('statsWithCohorts is successfully writing.');
   });
 
   return statsWithCohorts;
@@ -491,21 +484,62 @@ const buildCsv = (statsWithCohorts) => {
 };
 
 const run = async () => {
-  const statsWithCustomers = await addCustomersStats(databasePage);
-  console.log('Stats With Customers | length: ', statsWithCustomers.length, '\n');
+  // const statsWithCustomers = await addCustomersStats(databasePage);
+  // console.log('Stats With Customers | length: ', statsWithCustomers.length, '\n');
 
-  const statsWithLeads = await addLeadsStats(statsWithCustomers);
-  console.log('Stats With Leads | length: ', statsWithLeads.length, '\n');
+  // fs.writeFileSync(`./temp/dump/1_statsWithCustomers_${Dates.now}.json`, JSON.stringify(statsWithCustomers), (error) => {
+  //   if (error) throw new Error(error);
+  //   console.log('statsWithCustomers is successfully writing.');
+  // });
+  // process.exit();
 
-  const statsWithEvents = await addEventsStats(statsWithLeads);
-  console.log('Stats With Events | length: ', statsWithEvents.length, '\n');
 
-  const statsWithWorkDates = addWorkDatesStats(statsWithEvents);
-  console.log('Stats With Work Dates | length: ', statsWithWorkDates.length, '\n');
 
-  const statsWithCohorts = addCohortsStats(statsWithWorkDates);
-  console.log('__Stats With Cohorts | length: ', statsWithCohorts.length, '\n');
+  // const statsWithCustomers = require(`../temp/dump/1_statsWithCustomers_${Dates.now}.json`);
+  // const statsWithLeads = await addLeadsStats(statsWithCustomers, 1250000);
+  // console.log('Stats With Leads | length: ', statsWithLeads.length, '\n');
+  // fs.writeFileSync(`./temp/dump/2_statsWithLeads_${Dates.now}.json`, JSON.stringify(statsWithLeads), (error) => {
+  //   if (error) throw new Error(error);
+  //   console.log('statsWithLeads is successfully writing.');
+  // });
+  // process.exit();
 
+
+
+  // const statsWithLeads = require(`../temp/dump/2_statsWithLeads_${Dates.now}.json`);
+  // const statsWithEvents = await addEventsStats(statsWithLeads, 1250000);
+  // console.log('Stats With Events | length: ', statsWithEvents.length, '\n');
+  // fs.writeFileSync(`./temp/dump/3_statsWithEvents_${Dates.now}.json`, JSON.stringify(statsWithEvents), (error) => {
+  //   if (error) throw new Error(error);
+  //   console.log('statsWithEvents is successfully writing.');
+  // });
+  // process.exit();
+
+
+
+  // const statsWithEvents = require(`../temp/dump/3_statsWithEvents_${Dates.now}.json`);
+  // const statsWithWorkDates = addWorkDatesStats(statsWithEvents);
+  // console.log('Stats With Events | length: ', statsWithEvents.length, '\n');
+  // fs.writeFileSync(`./temp/dump/4_statsWithWorkDates_${Dates.now}.json`, JSON.stringify(statsWithWorkDates), (error) => {
+  //   if (error) throw new Error(error);
+  //   console.log('statsWithWorkDates is successfully writing.');
+  // });
+  // process.exit();
+
+
+
+  // const statsWithWorkDates = require(`../temp/dump/4_statsWithWorkDates_${Dates.now}.json`);
+  // const statsWithCohorts = addCohortsStats(statsWithWorkDates);
+  // console.log('__Stats With Cohorts | length: ', statsWithCohorts.length, '\n');
+  // fs.writeFileSync(`./temp/dump/5_statsWithCohorts_${Dates.now}.json`, JSON.stringify(statsWithCohorts), (error) => {
+  //   if (error) throw new Error(error);
+  //   console.log('statsWithCohorts is successfully writing.');
+  // });
+  // process.exit();
+
+
+
+  const statsWithCohorts = require(`../temp/dump/5_statsWithCohorts_${Dates.now}.json`);
   buildCsv(statsWithCohorts);
 };
 
